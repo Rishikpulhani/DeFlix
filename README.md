@@ -29,6 +29,7 @@ backend --> for this we have used firebase, we used a web2 centralised solution 
 ipfs integration --> we used pinata here
 smart contract integration --> for this we have used web3js 
 account abstraction --> for this we were using Thirdweb
+wallet --> metamask
 
 'Install Dependencies: '
 npm install react-scripts --save
