@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { Modal, Box, TextField, Button, Typography, IconButton, Select, MenuItem } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import styled from 'styled-components';
 import { collection, addDoc } from 'firebase/firestore'; // Import Firestore functions
 import { db } from '../firebase'; // Assuming you have configured Firebase and exported db
+//import { useStorageUpload } from '@thirdweb-dev/react';
 import axios from "axios";
+import Web3Contract from "../contracts/Web3Contract.json";
 import Web3 from 'web3';
+//import { init } from "../Web3Client";
+
+
 
 const style = {
   position: 'absolute',
@@ -29,8 +34,10 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
 `;
-
+let videoHash;
 const UploadModal = ({ open, handleClose, nftContract, isInitialised, selectedAccount }) => {
+  
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [primaryThumbnail, setPrimaryThumbnail] = useState('');
@@ -38,26 +45,59 @@ const UploadModal = ({ open, handleClose, nftContract, isInitialised, selectedAc
   const [price, setPrice] = useState('');
   const [label, setLabel] = useState('');
   const [videoFile, setVideoFile] = useState(null);
-  const [videoHash, setVideoHash] = useState('');
 
-  if (!isInitialised) {
-    return <div>Loading...</div>;
+
+  if (!isInitialised){
+    return <div>loading...</div>;
   }
-
   console.log(nftContract);
+  
 
-  const mintToken = (title, description, primaryThumbnail, secondaryThumbnail, price, label, videoHash) => {
-    return nftContract.methods.mintNft(title, description, primaryThumbnail, secondaryThumbnail, videoHash, price, label, 0).send({ from: selectedAccount });
+  //let tid = nftContract.methods.getTokenIdByIpfsHash(videoHash).call();
+
+  const mintToken = (title,description,primaryThumbnail,secondaryThumbnail,price,label,videoHash) =>{
+    return nftContract.methods.mintNft(title, description,primaryThumbnail,secondaryThumbnail,videoHash,price,label,0).send({ from : selectedAccount});
   }
+  /*const subs = () => {
+    return nftContract.methods.subscribe().send({
+      from: selectedAccount,
+      value: Web3.utils.toWei('0.01', 'ether')
+    });
+  }
+  const renting = () => {
+    return nftContract.methods.
+  }
+
+  const flip = () => {
+    return nftContract.methods.flipMood().send({from : selectedAccount});
+  }*/
 
   const handleFileChange = (event) => {
     setVideoFile(event.target.files[0]);
   };
 
+  /*const { mutateAsync: upload} = useStorageUpload();
+
+     const uploadToIpfs = async(file) => {
+        const uploadUrl = await upload({
+          data: [file],
+          options: {
+            uploadWithGatewayUrl: true,
+            uploadWithoutDirectory: true
+          }
+        })
+        console.log('upload url', uploadUrl);
+      };*/
+  
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     try {
+      // Upload video file to storage (assuming you have storage logic)
+      // For simplicity, I'm focusing on Firestore data upload
+     
+      //uploadToIpfs(videoFile);
       const formData = new FormData();
       formData.append("file", videoFile);
 
@@ -71,26 +111,31 @@ const UploadModal = ({ open, handleClose, nftContract, isInitialised, selectedAc
           "Content-Type": "multipart/form-data",
         },
       });
-      const ipfsHash = `https://gateway.pinata.cloud/ipfs/${resFile.data.IpfsHash}`;
-      setVideoHash(ipfsHash);
-      console.log(ipfsHash);
+      videoHash = `https://gateway.pinata.cloud/ipfs/${resFile.data.IpfsHash}`;
+      console.log(videoHash);
 
-      await mintToken(title, description, primaryThumbnail, secondaryThumbnail, price, label, ipfsHash);
+      mintToken(title,description,primaryThumbnail,secondaryThumbnail,0,label,videoHash).then((tx) => {
+        console.log(tx);
+      }).catch((err) => {
+        console.log(err);
+      });
 
+      // Add video data to Firestore
       const docRef = await addDoc(collection(db, 'videos'), {
         title,
         description,
         primaryThumbnail,
         secondaryThumbnail,
-        price: parseFloat(price),
+        price: parseFloat(price), // Convert price to number (if necessary)
         label,
-        hash: ipfsHash // Store the IPFS hash in Firestore
+        // Add more fields as needed
       });
 
       console.log('Document written with ID: ', docRef.id);
-      handleClose();
+      handleClose(); // Close modal on success
     } catch (error) {
       console.error('Error adding document: ', error);
+      // Handle error (e.g., display error message)
     }
   };
 
@@ -109,8 +154,8 @@ const UploadModal = ({ open, handleClose, nftContract, isInitialised, selectedAc
           <TextField label="Title" fullWidth value={title} onChange={(e) => setTitle(e.target.value)} required />
           <TextField label="Description" fullWidth value={description} onChange={(e) => setDescription(e.target.value)} required />
           <TextField label="Primary Thumbnail URL" fullWidth value={primaryThumbnail} onChange={(e) => setPrimaryThumbnail(e.target.value)} required />
-          <TextField label="Secondary Thumbnail URL" fullWidth value={secondaryThumbnail} onChange={(e) => setSecondaryThumbnail(e.target.value)} required />
-          <TextField label="Price" type="number" fullWidth value={price} onChange={(e) => setPrice(e.target.value)} required />
+          <TextField label="Secondary Thumbnail URL" fullWidth value={secondaryThumbnail} onChange={(e) => setSecondaryThumbnail(e.target.value)} />
+          <TextField label="Rent Price" type="number" fullWidth value={price} onChange={(e) => setPrice(e.target.value)} required />
           <Select
             value={label}
             onChange={(e) => setLabel(e.target.value)}
@@ -129,7 +174,9 @@ const UploadModal = ({ open, handleClose, nftContract, isInitialised, selectedAc
             <MenuItem value="Kids">Kids</MenuItem>
           </Select>
           <input type="file" accept="video/*" onChange={handleFileChange} required />
-          <Button type="submit" variant="contained" color="primary">Submit</Button>
+          <Button type="submit" variant="contained" color="primary">
+            Upload
+          </Button>
         </Form>
       </Box>
     </Modal>
@@ -137,3 +184,4 @@ const UploadModal = ({ open, handleClose, nftContract, isInitialised, selectedAc
 };
 
 export default UploadModal;
+export {videoHash};

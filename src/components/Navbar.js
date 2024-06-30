@@ -32,7 +32,7 @@ const Navbar = ({ toggleSidebar, open, user, toggleUploadModal}) => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap>
-            YouTube
+            DeFlix
           </Typography>
           <Search>
             <InputBase style={{color: "white"}} placeholder="Search…" />

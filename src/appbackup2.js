@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+/*import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -55,7 +55,6 @@ const App = () => {
       setIsInitialised(true);
     };
 
-    // Call init to automatically prompt MetaMask connection
     init();
   }, []);
 
@@ -103,4 +102,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default App;*/
